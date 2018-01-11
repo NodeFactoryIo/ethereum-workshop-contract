@@ -10,6 +10,9 @@ contract TicTacToe {
     
     Game[] public games;
     
+    event BoardState(uint256 gameId, uint8[] board, address turn);
+    event GameResult(uint256 gameId, address winner);
+    
     modifier inGame(uint256 _gameId) {
         require(games.length > _gameId);
         Game storage game = games[_gameId];
@@ -28,13 +31,17 @@ contract TicTacToe {
         
     }
     
-    function joinGame(uint256 _gameId) payable inGame(_gameId) returns (
+    function joinGame(uint256 _gameId) payable inGame(_gameId) external returns (
         bool,
         uint8[],
         address,
         uint8
     )
     {
+        
+    }
+    
+    function move(uint256 _gameId, uint8 position) external inGame(_gameId) {
         
     }
 }
