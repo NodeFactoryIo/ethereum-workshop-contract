@@ -21,8 +21,16 @@ contract TicTacToe {
     modifier inGame(uint256 _gameId) {
         require(games.length > _gameId);
         Game storage game = games[_gameId];
-        require(game.players[X] != msg.sender || game.players[O] != msg.sender);
+        require(game.players[X] == msg.sender || game.players[O] == msg.sender);
         _;
+    }
+    
+    function getBoardPosition(uint _gameId, uint8 position) public view returns (uint8) {
+        return games[_gameId].board[position];
+    }
+    
+    function getPlayer(uint _gameId, uint8 _symbol) public view returns (address) {
+        return games[_gameId].players[_symbol];
     }
     
     function getEmptyBoard() private pure returns (uint8[9]) {
@@ -64,15 +72,15 @@ contract TicTacToe {
     }
     
     function winnerExists(uint8[9] board, uint8 symbol) private pure returns (bool finished) {
-        uint horizontal_count;
-        uint8 vertical_count;
-        uint8 right_to_left_count;
-        uint8 left_to_right_count;
+        uint8 horizontal_count = 0;
+        uint8 vertical_count = 0;
+        uint8 right_to_left_count = 0;
+        uint8 left_to_right_count = 0;
         uint8 board_size = 3;
         
-        for (uint8 x = 0; x < board.length; x++) {
+        for (uint8 x = 0; x < board_size; x++) {
             horizontal_count = vertical_count = 0;
-            for (uint8 y = 0; x < board.length; x++) {
+            for (uint8 y = 0; y < board_size; y++) {
                 // "0,1,2", "3,4,5", "6,7,8"
                 if (board[x * board_size + y] == symbol) {
                     horizontal_count++;
@@ -82,22 +90,22 @@ contract TicTacToe {
                     vertical_count++;
                 }
             }
+            
+            // Check horizontal and vertical combination
+    		if (horizontal_count == board_size || vertical_count == board_size) {
+    			return true;	
+    		}
+    
+    		// diagonal "0,4,8"
+    		if (board[x * board_size + y] == symbol) {
+    			right_to_left_count++;
+    		}
+    
+    		// diagonal "2,4,6"
+    		if (board[(board_size - 1) * (x+1)] == symbol) {
+    			left_to_right_count++;
+    		}
         }
-        
-        // Check horizontal and vertical combination
-		if (horizontal_count == board_size || vertical_count == board_size) {
-			return true;	
-		}
-
-		// diagonal "0,4,8"
-		if (board[x * board_size + y] == symbol) {
-			right_to_left_count++;
-		}
-
-		// diagonal "2,4,6"
-		if (board[(board_size - 1) * (x+1)] == symbol) {
-			left_to_right_count++;
-		}
 		
 		if (right_to_left_count == board_size || left_to_right_count == board_size) {
 		    return true;
@@ -115,6 +123,7 @@ contract TicTacToe {
         
         return true;
     }
+
     
     function move(uint256 _gameId, uint8 position) external inGame(_gameId) {
         Game storage game = games[_gameId];
