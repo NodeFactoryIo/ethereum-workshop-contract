@@ -97,7 +97,7 @@ contract TicTacToe {
     		}
     
     		// diagonal "0,4,8"
-    		if (board[x * board_size + y] == symbol) {
+    		if (board[x * board_size + x] == symbol) {
     			right_to_left_count++;
     		}
     
