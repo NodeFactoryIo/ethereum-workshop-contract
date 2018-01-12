@@ -1,17 +1,19 @@
 pragma solidity ^0.4.19;
 
 contract TicTacToe {
+    uint8 constant X = 1;
+    uint8 constant O = 2;
+    uint8 constant EMPTY = 0;
+    
+    enum GameStatus { Waiting, Ready, Finished }
+    
     struct Game {
         string name;
-        bool ready;
+        GameStatus status;
         uint8[9] board;
         uint8 turn;
         mapping(uint8 => address) players;
     }
-    
-    uint8 constant X = 1;
-    uint8 constant O = 2;
-    uint8 constant EMPTY = 0;
     
     Game[] public games;
     
@@ -21,6 +23,7 @@ contract TicTacToe {
     modifier inGame(uint256 _gameId) {
         require(games.length > _gameId);
         Game storage game = games[_gameId];
+        require(game.status == GameStatus.Ready);
         require(game.players[X] == msg.sender || game.players[O] == msg.sender);
         _;
     }
@@ -47,18 +50,17 @@ contract TicTacToe {
     
     function createGame(string _name) payable external returns (
         uint256 gameId,
-        bool ready,
         uint8[9] board,
         uint8 turn
     )
     {
         require(msg.value == 1);
         
-        Game memory game = Game(_name, false, getEmptyBoard(), X);
+        Game memory game = Game(_name, GameStatus.Waiting, getEmptyBoard(), X);
         uint256 id = games.push(game) - 1;
         games[id].players[X] = msg.sender;
         
-        return (id, game.ready, game.board, game.turn);
+        return (id, game.board, game.turn);
     }
     
     function joinGame(uint256 _gameId) payable external {
@@ -67,6 +69,7 @@ contract TicTacToe {
         
         Game storage game = games[_gameId];
         game.players[O] = msg.sender;
+        game.status = GameStatus.Ready;
         
         BoardState(_gameId, game.board, game.turn);
     }
@@ -135,11 +138,13 @@ contract TicTacToe {
         if (winnerExists(game.board, game.turn)) {
             address winner = game.players[game.turn];
             winner.transfer(2);
+            game.status = GameStatus.Finished;
             GameResult(_gameId, winner);
             return;
         }
         
         if (isDraw(game.board)) {
+            game.status = GameStatus.Finished;
             GameResult(_gameId, 0);
         }
         
