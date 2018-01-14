@@ -9,6 +9,9 @@ contract TicTacToe {
     //empty board field symbol
     uint8 constant EMPTY = 0;
 
+    //player entry fee in wei (winner reward is 2 x ENTRY_FEE)
+    uint256 public constant ENTRY_FEE = 1;
+
     // Waiting - after the game is created, only one player is int the game
     // Ready - both players are int the game, game is progressing
     // Finished - after we announce the winner player
@@ -62,6 +65,8 @@ contract TicTacToe {
 
     //method for making current player move
     //if it's a winning move or draw, broadcast GameResult event and returns
+    //in case of winning move, 2xENTRY_FEE should be transferred to winner address
+    //in case of draw, each player should get his ENTRY_FEE back
     //updates next player in game object
     //saves current player symbol on board at given position
     //broadcasts BoardState event
