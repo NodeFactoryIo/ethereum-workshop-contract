@@ -51,7 +51,13 @@ contract TicTacToe {
         uint8 turn
     )
     {
-        //your implementation here
+        require(msg.value == 1);
+
+        Game memory game = Game(_name, GameStatus.Waiting, getEmptyBoard(), X);
+        uint256 id = games.push(game) - 1;
+        games[id].players[X] = msg.sender;
+
+        return (id, game.board, game.turn);
     }
 
     //second player joins game by giving game id
@@ -60,7 +66,14 @@ contract TicTacToe {
     //method should change game status to ready
     //method should broadcast BoardState event to notify player X
     function joinGame(uint256 _gameId) payable external {
-        //your implementation here
+        require(msg.value == 1);
+        require(games.length > _gameId);
+
+        Game storage game = games[_gameId];
+        game.players[O] = msg.sender;
+        game.status = GameStatus.Ready;
+
+        BoardState(_gameId, game.board, game.turn);
     }
 
     //method for making current player move
@@ -71,54 +84,84 @@ contract TicTacToe {
     //saves current player symbol on board at given position
     //broadcasts BoardState event
     function move(uint256 _gameId, uint8 position) external inGame(_gameId) {
+        Game storage game = games[_gameId];
+        require(game.board[position] == EMPTY);
+        require(game.players[game.turn] == msg.sender);
 
-        //your implementation
+        game.board[position] = game.turn;
 
+        if (winnerExists(game.board, game.turn)) {
+            address winner = game.players[game.turn];
+            winner.transfer(2 * ENTRY_FEE);
+            game.status = GameStatus.Finished;
+            GameResult(_gameId, winner);
+            return;
+        }
+
+        if (isDraw(game.board)) {
+            game.status = GameStatus.Finished;
+            game.players[X].transfer(ENTRY_FEE);
+            game.players[O].transfer(ENTRY_FEE);
+            GameResult(_gameId, 0);
+        }
+
+        game.turn = getNextPlayer(game.turn);
+        BoardState(_gameId, game.board, game.turn);
     }
 
 
     //utility function to help you with determine if given symbol has won
     //true if given symbol has won, false otherwise
     function winnerExists(uint8[9] board, uint8 symbol) private pure returns (bool finished) {
-            uint8 horizontal_count = 0;
-            uint8 vertical_count = 0;
-            uint8 right_to_left_count = 0;
-            uint8 left_to_right_count = 0;
-            uint8 board_size = 3;
+        uint8 horizontal_count = 0;
+        uint8 vertical_count = 0;
+        uint8 right_to_left_count = 0;
+        uint8 left_to_right_count = 0;
+        uint8 board_size = 3;
 
-            for (uint8 x = 0; x < board_size; x++) {
-                horizontal_count = vertical_count = 0;
-                for (uint8 y = 0; y < board_size; y++) {
-                    // "0,1,2", "3,4,5", "6,7,8"
-                    if (board[x * board_size + y] == symbol) {
-                        horizontal_count++;
-                    }
-
-                    if (board[y * board_size + x] == symbol) {
-                        vertical_count++;
-                    }
+        for (uint8 x = 0; x < board_size; x++) {
+            horizontal_count = vertical_count = 0;
+            for (uint8 y = 0; y < board_size; y++) {
+                // "0,1,2", "3,4,5", "6,7,8"
+                if (board[x * board_size + y] == symbol) {
+                    horizontal_count++;
                 }
 
-                // Check horizontal and vertical combination
-        		if (horizontal_count == board_size || vertical_count == board_size) {
-        			return true;
-        		}
-
-        		// diagonal "0,4,8"
-        		if (board[x * board_size + x] == symbol) {
-        			right_to_left_count++;
-        		}
-
-        		// diagonal "2,4,6"
-        		if (board[(board_size - 1) * (x+1)] == symbol) {
-        			left_to_right_count++;
-        		}
+                if (board[y * board_size + x] == symbol) {
+                    vertical_count++;
+                }
             }
 
-    		if (right_to_left_count == board_size || left_to_right_count == board_size) {
-    		    return true;
+            // Check horizontal and vertical combination
+    		if (horizontal_count == board_size || vertical_count == board_size) {
+    			return true;
     		}
 
-            return false;
+    		// diagonal "0,4,8"
+    		if (board[x * board_size + x] == symbol) {
+    			right_to_left_count++;
+    		}
+
+    		// diagonal "2,4,6"
+    		if (board[(board_size - 1) * (x+1)] == symbol) {
+    			left_to_right_count++;
+    		}
         }
+
+		if (right_to_left_count == board_size || left_to_right_count == board_size) {
+		    return true;
+		}
+
+        return false;
+    }
+
+    function isDraw(uint8[9] board) private pure returns (bool draw) {
+        for (uint8 x = 0; x < board.length; x++) {
+            if (board[x] == EMPTY) {
+                return false;
+            }
+        }
+
+        return true;
+    }
 }
