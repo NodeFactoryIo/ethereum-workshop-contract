@@ -172,4 +172,16 @@ contract TicTacToe {
 
         return true;
     }
+
+    function getEmptyBoard() private pure returns (uint8[9]) {
+            return [EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY];
+    }
+
+    function getNextPlayer(uint8 _turn) private pure returns (uint8) {
+        if (_turn == X) {
+            return O;
+        } else {
+            return X;
+        }
+    }
 }
