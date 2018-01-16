@@ -41,6 +41,14 @@ contract TicTacToe {
     //winner address should be 0 if it's a draw
     event GameResult(uint256 gameId, address winner);
 
+    modifier inGame(uint256 _gameId) {
+         require(games.length > _gameId);
+         Game storage game = games[_gameId];
+         require(game.status == GameStatus.Ready);
+         require(game.players[X] == msg.sender || game.players[O] == msg.sender);
+         _;
+    }
+
     //first player creates game giving only the game label
     //method should check if there is enough of ether sent
     //caller should be set as player X and set to be first
