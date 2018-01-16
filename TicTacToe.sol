@@ -13,7 +13,7 @@ contract TicTacToe {
     uint256 public constant ENTRY_FEE = 1;
 
     // Waiting - after the game is created, only one player is int the game
-    // Ready - both players are int the game, game is progressing
+    // Ready - both players are in the game, game is progressing
     // Finished - after we announce the winner player
     enum GameStatus { Waiting, Ready, Finished }
 
