@@ -41,6 +41,12 @@ contract TicTacToe {
     //winner address should be 0 if it's a draw
     event GameResult(uint256 gameId, address winner);
 
+    //Utility method for frontend so it can retrieve all games from array
+    //should return number of elements in game array
+    function getGamesCount() public view returns(uint256 count) {
+        //your implementation here
+    }
+
     //first player creates game giving only the game label
     //method should check if there is enough of ether sent
     //caller should be set as player X and set to be first
