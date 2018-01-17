@@ -35,6 +35,8 @@ contract TicTacToe {
     //all contract games
     Game[] public games;
 
+    //should only be broadcasted when new game is created
+    event GameCreated(uint256 gameId, uint8[9] board, uint8 turn);
     //should be broadcasted after each move(except for last)
     event BoardState(uint256 gameId, uint8[9] board, uint8 turn);
     //should be broadcasted if somebody has won or is draw
@@ -55,23 +57,25 @@ contract TicTacToe {
         return games.length;
     }
 
+    //Method that returns player address associated with given symbol
+    function getPlayerAddress(uint256 _gameId, uint8 _symbol) public view returns(address player) {
+        require(games.length > _gameId);
+        Game storage game = games[_gameId];
+        return game.players[_symbol];
+    }
+
     //first player creates game giving only the game label
     //method should check if there is enough of ether sent
     //caller should be set as player X and set to be first
-    //return game position in array as game id (becareful array push returns new length or array)
-    function createGame(string _name) payable external returns (
-        uint256 gameId,
-        uint8[9] board,
-        uint8 turn
-    )
-    {
+    //broadcasts GameCreated event
+    function createGame(string _name) payable external {
         require(msg.value == 1);
 
         Game memory game = Game(_name, GameStatus.Waiting, getEmptyBoard(), X);
         uint256 id = games.push(game) - 1;
         games[id].players[X] = msg.sender;
 
-        return (id, game.board, game.turn);
+        GameCreated(id, game.board, game.turn);
     }
 
     //second player joins game by giving game id
