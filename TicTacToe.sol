@@ -13,7 +13,7 @@ contract TicTacToe {
     uint256 public constant ENTRY_FEE = 1;
 
     // Waiting - after the game is created, only one player is int the game
-    // Ready - both players are in the game, game is progressing
+    // Ready - both players are int the game, game is progressing
     // Finished - after we announce the winner player
     enum GameStatus { Waiting, Ready, Finished }
 
@@ -35,29 +35,47 @@ contract TicTacToe {
     //all contract games
     Game[] public games;
 
+    //should only be broadcasted when new game is created
+    event GameCreated(uint256 gameId, uint8[9] board, uint8 turn);
     //should be broadcasted after each move(except for last)
     event BoardState(uint256 gameId, uint8[9] board, uint8 turn);
     //should be broadcasted if somebody has won or is draw
     //winner address should be 0 if it's a draw
     event GameResult(uint256 gameId, address winner);
 
+    modifier inGame(uint256 _gameId) {
+         require(games.length > _gameId);
+         Game storage game = games[_gameId];
+         require(game.status == GameStatus.Ready);
+         require(game.players[X] == msg.sender || game.players[O] == msg.sender);
+         _;
+    }
+
     //Utility method for frontend so it can retrieve all games from array
     //should return number of elements in game array
     function getGamesCount() public view returns(uint256 count) {
-        //your implementation here
+        return games.length;
+    }
+
+    //Method that returns player address associated with given symbol
+    function getPlayerAddress(uint256 _gameId, uint8 _symbol) public view returns(address player) {
+        require(games.length > _gameId);
+        Game storage game = games[_gameId];
+        return game.players[_symbol];
     }
 
     //first player creates game giving only the game label
     //method should check if there is enough of ether sent
     //caller should be set as player X and set to be first
-    //return game position in array as game id (becareful array push returns new length or array)
-    function createGame(string _name) payable external returns (
-        uint256 gameId,
-        uint8[9] board,
-        uint8 turn
-    )
-    {
-        //your implementation here
+    //broadcasts GameCreated event
+    function createGame(string _name) payable external {
+        require(msg.value == 1);
+
+        Game memory game = Game(_name, GameStatus.Waiting, getEmptyBoard(), X);
+        uint256 id = games.push(game) - 1;
+        games[id].players[X] = msg.sender;
+
+        GameCreated(id, game.board, game.turn);
     }
 
     //second player joins game by giving game id
@@ -66,7 +84,14 @@ contract TicTacToe {
     //method should change game status to ready
     //method should broadcast BoardState event to notify player X
     function joinGame(uint256 _gameId) payable external {
-        //your implementation here
+        require(msg.value == 1);
+        require(games.length > _gameId);
+
+        Game storage game = games[_gameId];
+        game.players[O] = msg.sender;
+        game.status = GameStatus.Ready;
+
+        BoardState(_gameId, game.board, game.turn);
     }
 
     //method for making current player move
@@ -77,54 +102,109 @@ contract TicTacToe {
     //saves current player symbol on board at given position
     //broadcasts BoardState event
     function move(uint256 _gameId, uint8 position) external inGame(_gameId) {
+        Game storage game = games[_gameId];
+        require(game.board[position] == EMPTY);
+        require(game.players[game.turn] == msg.sender);
 
-        //your implementation
+        game.board[position] = game.turn;
 
+        if (winnerExists(game.board, game.turn)) {
+            address winner = game.players[game.turn];
+            winner.transfer(2 * ENTRY_FEE);
+            game.status = GameStatus.Finished;
+            GameResult(_gameId, winner);
+            return;
+        }
+
+        if (isDraw(game.board)) {
+            game.status = GameStatus.Finished;
+            game.players[X].transfer(ENTRY_FEE);
+            game.players[O].transfer(ENTRY_FEE);
+            GameResult(_gameId, 0);
+        }
+
+        game.turn = getNextPlayer(game.turn);
+        BoardState(_gameId, game.board, game.turn);
     }
 
 
     //utility function to help you with determine if given symbol has won
     //true if given symbol has won, false otherwise
     function winnerExists(uint8[9] board, uint8 symbol) private pure returns (bool finished) {
-            uint8 horizontal_count = 0;
-            uint8 vertical_count = 0;
-            uint8 right_to_left_count = 0;
-            uint8 left_to_right_count = 0;
-            uint8 board_size = 3;
+        uint8 horizontal_count = 0;
+        uint8 vertical_count = 0;
+        uint8 right_to_left_count = 0;
+        uint8 left_to_right_count = 0;
+        uint8 board_size = 3;
 
-            for (uint8 x = 0; x < board_size; x++) {
-                horizontal_count = vertical_count = 0;
-                for (uint8 y = 0; y < board_size; y++) {
-                    // "0,1,2", "3,4,5", "6,7,8"
-                    if (board[x * board_size + y] == symbol) {
-                        horizontal_count++;
-                    }
-
-                    if (board[y * board_size + x] == symbol) {
-                        vertical_count++;
-                    }
+        for (uint8 x = 0; x < board_size; x++) {
+            horizontal_count = vertical_count = 0;
+            for (uint8 y = 0; y < board_size; y++) {
+                // "0,1,2", "3,4,5", "6,7,8"
+                if (board[x * board_size + y] == symbol) {
+                    horizontal_count++;
                 }
 
-                // Check horizontal and vertical combination
-        		if (horizontal_count == board_size || vertical_count == board_size) {
-        			return true;
-        		}
-
-        		// diagonal "0,4,8"
-        		if (board[x * board_size + x] == symbol) {
-        			right_to_left_count++;
-        		}
-
-        		// diagonal "2,4,6"
-        		if (board[(board_size - 1) * (x+1)] == symbol) {
-        			left_to_right_count++;
-        		}
+                if (board[y * board_size + x] == symbol) {
+                    vertical_count++;
+                }
             }
 
-    		if (right_to_left_count == board_size || left_to_right_count == board_size) {
-    		    return true;
+            // Check horizontal and vertical combination
+    		if (horizontal_count == board_size || vertical_count == board_size) {
+    			return true;
     		}
 
-            return false;
+    		// diagonal "0,4,8"
+    		if (board[x * board_size + x] == symbol) {
+    			right_to_left_count++;
+    		}
+
+    		// diagonal "2,4,6"
+    		if (board[(board_size - 1) * (x+1)] == symbol) {
+    			left_to_right_count++;
+    		}
         }
+
+		if (right_to_left_count == board_size || left_to_right_count == board_size) {
+		    return true;
+		}
+
+        return false;
+    }
+
+    function isDraw(uint8[9] board) private pure returns (bool draw) {
+        for (uint8 x = 0; x < board.length; x++) {
+            if (board[x] == EMPTY) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    function getEmptyBoard() private pure returns (uint8[9]) {
+            return [EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY];
+    }
+
+    function getNextPlayer(uint8 _turn) private pure returns (uint8) {
+        if (_turn == X) {
+            return O;
+        } else {
+            return X;
+        }
+    }
+    
+    function getPlayerSymbol(uint256 _gameId) external view returns (string) {
+        Game storage game = games[_gameId];
+        if (game.players[X] == msg.sender) {
+            return 'X';
+        }
+        
+        if (game.players[O] == msg.sender) {
+            return 'O';
+        }
+        
+        return '';
+    }
 }
