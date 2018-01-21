@@ -36,7 +36,7 @@ contract TicTacToe {
     Game[] public games;
 
     //should only be broadcasted when new game is created
-    event GameCreated(uint256 indexed gameId, string name, uint8[9] board, uint8 turn);
+    event GameCreated(uint256 indexed gameId, string name, uint8 turn);
     //should be broadcasted after each move(except for last)
     event BoardState(uint256 indexed gameId, uint8[9] board, uint8 turn);
     //should be broadcasted if somebody has won or is draw
@@ -82,7 +82,7 @@ contract TicTacToe {
         uint256 id = games.push(game) - 1;
         games[id].players[X] = msg.sender;
 
-        GameCreated(id, _name, game.board, game.turn);
+        GameCreated(id, _name, game.turn);
     }
 
     //second player joins game by giving game id
