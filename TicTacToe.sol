@@ -36,12 +36,12 @@ contract TicTacToe {
     Game[] public games;
 
     //should only be broadcasted when new game is created
-    event GameCreated(uint256 gameId, uint8[9] board, uint8 turn);
+    event GameCreated(uint256 indexed gameId, uint8[9] board, uint8 turn);
     //should be broadcasted after each move(except for last)
-    event BoardState(uint256 gameId, uint8[9] board, uint8 turn);
+    event BoardState(uint256 indexed gameId, uint8[9] board, uint8 turn);
     //should be broadcasted if somebody has won or is draw
     //winner address should be 0 if it's a draw
-    event GameResult(uint256 gameId, address winner);
+    event GameResult(uint256 indexed gameId, address winner);
 
     modifier inGame(uint256 _gameId) {
          require(games.length > _gameId);
