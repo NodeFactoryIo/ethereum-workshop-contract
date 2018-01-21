@@ -56,6 +56,13 @@ contract TicTacToe {
     function getGamesCount() public view returns(uint256 count) {
         return games.length;
     }
+    
+    //Utility method for frontend so it can retrieve latest game board
+    // should return board array
+    function getBoard(uint256 _gameId) external view returns (uint8[9]) {
+        Game memory game = games[_gameId];
+        return game.board;
+    }
 
     //Method that returns player address associated with given symbol
     function getPlayerAddress(uint256 _gameId, uint8 _symbol) public view returns(address player) {
