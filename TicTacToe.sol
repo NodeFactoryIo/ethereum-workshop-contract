@@ -36,12 +36,12 @@ contract TicTacToe {
     Game[] public games;
 
     //should only be broadcasted when new game is created
-    event GameCreated(uint256 indexed gameId, uint8[9] board, uint8 turn);
+    event GameCreated(uint256 gameId, uint8[9] board, uint8 turn);
     //should be broadcasted after each move(except for last)
-    event BoardState(uint256 indexed gameId, uint8[9] board, uint8 turn);
+    event BoardState(uint256 gameId, uint8[9] board, uint8 turn);
     //should be broadcasted if somebody has won or is draw
     //winner address should be 0 if it's a draw
-    event GameResult(uint256 indexed gameId, address winner);
+    event GameResult(uint256 gameId, address winner);
 
     modifier inGame(uint256 _gameId) {
          require(games.length > _gameId);
@@ -55,6 +55,13 @@ contract TicTacToe {
     //should return number of elements in game array
     function getGamesCount() public view returns(uint256 count) {
         return games.length;
+    }
+    
+    //Utility method for frontend so it can retrieve latest game board
+    // should return board array
+    function getBoard(uint256 _gameId) external view returns (uint8[9]) {
+        Game memory game = games[_gameId];
+        return game.board;
     }
 
     //Method that returns player address associated with given symbol
@@ -193,5 +200,18 @@ contract TicTacToe {
         } else {
             return X;
         }
+    }
+    
+    function getPlayerSymbol(uint256 _gameId) external view returns (string) {
+        Game storage game = games[_gameId];
+        if (game.players[X] == msg.sender) {
+            return 'X';
+        }
+        
+        if (game.players[O] == msg.sender) {
+            return 'O';
+        }
+        
+        return '';
     }
 }
