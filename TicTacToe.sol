@@ -201,17 +201,4 @@ contract TicTacToe {
             return X;
         }
     }
-    
-    function getPlayerSymbol(uint256 _gameId) external view returns (string) {
-        Game storage game = games[_gameId];
-        if (game.players[X] == msg.sender) {
-            return 'X';
-        }
-        
-        if (game.players[O] == msg.sender) {
-            return 'O';
-        }
-        
-        return '';
-    }
 }
