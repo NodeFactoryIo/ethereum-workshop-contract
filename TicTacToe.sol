@@ -43,14 +43,6 @@ contract TicTacToe {
     //winner address should be 0 if it's a draw
     event GameResult(uint256 indexed gameId, address winner);
 
-    modifier inGame(uint256 _gameId) {
-         require(games.length > _gameId);
-         Game storage game = games[_gameId];
-         require(game.status == GameStatus.Ready);
-         require(game.players[X] == msg.sender || game.players[O] == msg.sender);
-         _;
-    }
-
     //Utility method for frontend so it can retrieve all games from array
     //should return number of elements in game array
     function getGamesCount() public view returns(uint256 count) {
@@ -60,15 +52,12 @@ contract TicTacToe {
     //Utility method for frontend so it can retrieve latest game board
     // should return board array
     function getBoard(uint256 _gameId) external view returns (uint8[9]) {
-        Game memory game = games[_gameId];
-        return game.board;
+        //your implementation
     }
 
     //Method that returns player address associated with given symbol
     function getPlayerAddress(uint256 _gameId, uint8 _symbol) public view returns(address player) {
-        require(games.length > _gameId);
-        Game storage game = games[_gameId];
-        return game.players[_symbol];
+        //your implementation
     }
 
     //first player creates game giving only the game label
@@ -76,13 +65,7 @@ contract TicTacToe {
     //caller should be set as player X and set to be first
     //broadcasts GameCreated event
     function createGame(string _name) payable external {
-        require(msg.value == 1);
-
-        Game memory game = Game(_name, GameStatus.Waiting, getEmptyBoard(), X);
-        uint256 id = games.push(game) - 1;
-        games[id].players[X] = msg.sender;
-
-        GameCreated(id, _name, game.turn);
+        //your implementation
     }
 
     //second player joins game by giving game id
@@ -91,14 +74,7 @@ contract TicTacToe {
     //method should change game status to ready
     //method should broadcast BoardState event to notify player X
     function joinGame(uint256 _gameId) payable external {
-        require(msg.value == 1);
-        require(games.length > _gameId);
-
-        Game storage game = games[_gameId];
-        game.players[O] = msg.sender;
-        game.status = GameStatus.Ready;
-
-        BoardState(_gameId, game.board, game.turn);
+        //your implementation
     }
 
     //method for making current player move
@@ -109,29 +85,7 @@ contract TicTacToe {
     //saves current player symbol on board at given position
     //broadcasts BoardState event
     function move(uint256 _gameId, uint8 position) external inGame(_gameId) {
-        Game storage game = games[_gameId];
-        require(game.board[position] == EMPTY);
-        require(game.players[game.turn] == msg.sender);
-
-        game.board[position] = game.turn;
-
-        if (winnerExists(game.board, game.turn)) {
-            address winner = game.players[game.turn];
-            winner.transfer(2 * ENTRY_FEE);
-            game.status = GameStatus.Finished;
-            GameResult(_gameId, winner);
-            return;
-        }
-
-        if (isDraw(game.board)) {
-            game.status = GameStatus.Finished;
-            game.players[X].transfer(ENTRY_FEE);
-            game.players[O].transfer(ENTRY_FEE);
-            GameResult(_gameId, 0);
-        }
-
-        game.turn = getNextPlayer(game.turn);
-        BoardState(_gameId, game.board, game.turn);
+        //your implementation
     }
 
 
@@ -180,6 +134,7 @@ contract TicTacToe {
         return false;
     }
 
+    //checks if game ended in a draw
     function isDraw(uint8[9] board) private pure returns (bool draw) {
         for (uint8 x = 0; x < board.length; x++) {
             if (board[x] == EMPTY) {
@@ -190,10 +145,12 @@ contract TicTacToe {
         return true;
     }
 
+    //returns clean board with all empty fields
     function getEmptyBoard() private pure returns (uint8[9]) {
             return [EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY];
     }
 
+    //gets symbol from next player
     function getNextPlayer(uint8 _turn) private pure returns (uint8) {
         if (_turn == X) {
             return O;
